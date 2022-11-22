@@ -4,25 +4,25 @@ include("statetolabel.jl")
 #include("diag.jl")
 include("diagsparse.jl")
 include("expectZ.jl")
+include("Calculation of the entanglement entropy.jl")
 
 using Plots
 using LaTeXStrings
 using SparseArrays
 using Arpack
-using ExpmV
+#using ExpmV # Using Expokit instead of ExpmV as the former is faster
+using Expokit
+using Statistics
 
 
-N = 11; J = 1 ; h = (sqrt(5)+1)/4 ; g = (sqrt(5)+5)/8; 
-E = 0.01; nee = 80; L = 20 # 2^(Int64(round(N/2)+1)) # nee = 1 
+N = 16; J = 1 ; h = (sqrt(5)+1)/4 ; g = (sqrt(5)+5)/8; 
+E = 0.01; nee = 80; L = 10# nee = 1 
 Ls = rand(1:2^N, L) # A vector of labels of L Fock states in a Product State
-#t  = 40
 
 #Hd = H2(N, J, h, g) # Short for dense Hamiltonian matrix
 Hs = H2sparse(N, J, h, g)
-#U = exp(-im*Hm*t)
-# May have to use incremental times to create a U(t) operator which is made up of tiny U's 
-# acting consecutively on  
-println("Got Hs")
+#println("Got Hs")
+
 # Writing initial states to time evolve
 
 function FockState(l, N)
@@ -30,8 +30,9 @@ function FockState(l, N)
     This function returns a Fock state with a single spin up at site l of N sites, with the rest down.
     =#
     ϕ = zeros(N)
-    ϕ[l] = 1
+    ϕ[N+1-l] = 1
     ind = statetolabel(ϕ)
+    #display(ϕ)
 
     ψ = zeros(2^N) 
     ψ[ind] = 1
@@ -39,7 +40,7 @@ function FockState(l, N)
     #ψ[2^(N-2)] = 1
     #ψ[90] = 1
 
-    return ψ
+    return ψ, ϕ # The state representation in a 2^N vector and 
 end
 
 function lowesteigenstate(H, E)
@@ -91,8 +92,8 @@ end
 function ProductState(N, Ls, L)
     #=
     This function creates a normalised Product State of Fock States using an array A of
-    integers which are used as labels and the state is normalised by 1/sqrt(L), where L 
-    is the length of Ls
+    integers which are used as labels in a 2^N vector and the state is normalised by
+    1/sqrt(L), where L  is the length of Ls
     =#
     
     ψ = zeros(2^N)
@@ -102,21 +103,23 @@ function ProductState(N, Ls, L)
         #locind = statetolabel(ϕ)
         ψ[Ls[l]] = 1
     end
-    return ψ / sqrt(L)
+
+    return ψ / sqrt(L) , Ls
 end
 
 #X = diag(Hd)
 #Xs = diagsparse(Hs, E, nee)
 #display(Xs[2])
-#println("Completed diagsparse")
+
 #display(histogram(X, bins = range(minimum(X), stop = maximum(X), length = 40), normalize = false, 
 #                  label="N = "*string(N), xlabel = "ε", ylabel = " \nNumber of eigenstates\n "))
 
 #ket = sumofeigenstates(Xs[1], N, nee)
 #ket = sumofeigenstates(X[2], X[3], 0, 0.2, N) # Use for dense Hamiltonians
 ket = ProductState(N, Ls, L)
-println("Initial state defined")
-#display(ket)
+#ket = FockState(4, N)
+
+##println("initial state defined")
 #bra = conj(ket')
 # println(bra*ket) # verifies normalisation
 
@@ -125,28 +128,88 @@ println("Initial state defined")
 #expectZ(ψt, 4, N)
 
 
-function Opt(Ψ, H, N, i, tmax)
+function Opt(Ψ, Φ, H, N, i, tmax)
     #=
     This function generates a plot for the evolution of a quantum system of N sites 
     with a given initial state Ψ and Hamiltonian H up to a time tmax for the Z operator
     acting on site i.
     =#
-    dτ = tmax/60
+    dτ = tmax/100
     x = 0:dτ:tmax; y = [expectZ(Ψ, i, N)] # 140 gives the number the points; an abitrary choice which could be changed
     
-    L = length(x)-1
+    L = length(x)-1; a = Int64(L/2)
+    #println(" \nFor N = ", N)
+    ϕ = Ψ
     for τ in 1:L
-        ψτ = expmv(-im*τ*dτ, H, Ψ)
+        ψτ = expmv(-im*dτ, H, ϕ)
+        #ψτ = expmv(-im*τ*dτ, H, Ψ)
         locval = expectZ(ψτ, i, N)
         append!(y, locval)
-        println(τ)
+        ϕ = ψτ # Updates the state after each time evolution step.
+        #=
+        if mod(τ, 10) == 0
+            println(τ)
+        end=#
     end
 
-    graph = plot(x, y, label = "N = "*string(N)*" \nSparse H")
-    println("Making graph")
+    #= # Applicable for Fock States; Use Ls in place of ket[2] for Φ
+    S = ""
+    for j in string.(Int64.(Φ))
+        S =  S * j
+    end=#
+
+    graph = plot(x, y, label = "N = "*string(N),
+                 title = L"⟨Ψ(t)|Z_%$i|Ψ(t)⟩"*" vs t")# For Fock States: ... vs t for \n"*L"|Ψ(t=0)⟩ = |%$S⟩"
+    #println("Making graph")
     xlabel!(L"t")
     ylabel!(" \n "*L"⟨Ψ(t)|Z_%$i|Ψ(t)⟩") # %$ symbol allows for string interpolation so i is correctly presented in the yaxis label
     display(graph)
+
+    σ2 = 1/a * cov(y[a:L], corrected = false)
+    println(" \nVariance for N = ", N, " is ", σ2, "\nfor Ls = ", Φ)
+end 
+
+function OptEE(Ψ, Φ, H, N, i, tmax)
+    #=
+    This function generates a plot for the evolution of a quantum system of N sites 
+    with a given initial state Ψ and Hamiltonian H up to a time tmax for the Z operator
+    acting on site i.
+    =#
+    dτ = tmax/100; sites = siteinds(2,N)
+    x = 0:dτ:tmax; y = [EntangleEntropy(Ψ, i, sites)] # 140 gives the number the points; an abitrary choice which could be changed
+    
+    L = length(x)-1; a = Int64(L/2)
+    #println(" \nFor N = ", N)
+    ϕ = Ψ
+    for τ in 1:L
+        ψτ = expmv(-im*dτ, H, ϕ)
+        #ψτ = expmv(-im*τ*dτ, H, Ψ)
+        locval = EntangleEntropy(ψτ, i, sites)
+        append!(y, locval)
+        ϕ = ψτ # Updates the state after each time evolution step.
+        #=
+        if mod(τ, 10) == 0
+            println(τ)
+        end=#
+    end
+
+    S = ""
+    for j in string.(Int64.(Φ))
+        S =  S * j
+    end
+
+    graph = plot(x, y, label = "N = "*string(N),
+                 title = "Entanglement Entropy vs t for \n"*L"|Ψ(t=0)⟩ = |%$S⟩")
+    #println("Making graph")
+    xlabel!(L"t")
+    ylabel!(" \n "*"Entanglement Entropy\n ") # %$ symbol allows for string interpolation so i is correctly presented in the yaxis label
+    display(graph)
+
+    σ2 = 1/a * cov(y[a:L], corrected = false)
+    μ = mean(y[a:L])
+    println(" \nVariance for N = ", N, " is ", σ2)
+    println("And mean equilibrium value is ", μ, " \n ")
+    # return μ, σ2
 end 
 
 function OptD(Ψ, H, N, i, tmax)
@@ -168,7 +231,7 @@ function OptD(Ψ, H, N, i, tmax)
         locval = expectZ(ψτ, i, N)
         append!(y, locval)
     end
-    println("Making graph")
+    #println("Making graph\n ")
 
     graph = plot(x, y, label = "N = "*string(N)*" \nDense H")
     xlabel!(L"t")
@@ -176,7 +239,16 @@ function OptD(Ψ, H, N, i, tmax)
     display(graph)
 end 
 
-Opt(ket, Hs, N, 5, 200)
-#println("Completed Sparse plot")
+Opt(ket[1], ket[2], Hs, N, 6, 300) # where ket is a Fock state expressed as a vector in the Hilbert space and the spins on local sites.
+#println("Completed plot for N = ", N)
 #OptD(ket, Hd, N, 4, 600) # For comparison with sparse H using the same state.
-println("Done ")
+#=
+for Nloc in 15:2:21
+    Hsloc = H2sparse(Nloc, J, h, g)
+    #Lsloc = rand(1:2^Nloc, L)
+    #ketl = ProductState(Nloc, Lsloc, L) # ketl just sounded better than ketloc
+    ketl = FockState(4, Nloc)
+    #println("Got Hs and initial state for ", Nloc)
+
+    OptEE(ketl[1], ketl[2], Hsloc, Nloc, round(Int64, Nloc/2), 200)
+end=#
