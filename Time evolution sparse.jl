@@ -15,7 +15,7 @@ using Expokit
 using Statistics
 
 
-N = 18; J = 1 ; h = (sqrt(5)+1)/4 ; g = (sqrt(5)+5)/8; 
+N = 15; J = 1 ; h = (sqrt(5)+1)/4 ; g = (sqrt(5)+5)/8; 
 E = 0.01; nee = 80; L = 10# nee = 1 
 Ls = rand(1:2^N, L) # A vector of labels of L Fock states in a Product State
 
@@ -128,10 +128,13 @@ ket = ProductState(N, Ls, L)
 #expectZ(ψt, 4, N)
 
 # Comparing entanglement entropy functions
-sites = siteinds(2,N); a = Int64(round(N/2))
+sites = siteinds(2,N); a = 3
+println(a)
 A = EntangleEntropy(ket[1], a, sites)
-B = EntEnt(ket[1])
-println(isapprox(A, B))
+println(A)
+B = EntEnt(ket[1], a, N)
+println(B)
+#println(isapprox(A, B))
 
 function Opt(Ψ, Φ, H, N, i, tmax)
     #=
