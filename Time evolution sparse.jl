@@ -15,7 +15,7 @@ using Expokit
 using Statistics
 
 
-N = 16; J = 1 ; h = (sqrt(5)+1)/4 ; g = (sqrt(5)+5)/8; 
+N = 18; J = 1 ; h = (sqrt(5)+1)/4 ; g = (sqrt(5)+5)/8; 
 E = 0.01; nee = 80; L = 10# nee = 1 
 Ls = rand(1:2^N, L) # A vector of labels of L Fock states in a Product State
 
@@ -127,6 +127,11 @@ ket = ProductState(N, Ls, L)
 #println(expectZ(ket, 2, N)) # t=0 (initial value)
 #expectZ(ψt, 4, N)
 
+# Comparing entanglement entropy functions
+sites = siteinds(2,N); a = Int64(round(N/2))
+A = EntangleEntropy(ket[1], a, sites)
+B = EntEnt(ket[1])
+println(isapprox(A, B))
 
 function Opt(Ψ, Φ, H, N, i, tmax)
     #=
@@ -152,7 +157,7 @@ function Opt(Ψ, Φ, H, N, i, tmax)
         end=#
     end
 
-    #= # Applicable for Fock States; Use Ls in place of ket[2] for Φ
+    #= # Applicable for Fock States; Use Ls in place of Φ for ket[2]
     S = ""
     for j in string.(Int64.(Φ))
         S =  S * j
@@ -239,7 +244,7 @@ function OptD(Ψ, H, N, i, tmax)
     display(graph)
 end 
 
-Opt(ket[1], ket[2], Hs, N, 6, 300) # where ket is a Fock state expressed as a vector in the Hilbert space and the spins on local sites.
+#Opt(ket[1], ket[2], Hs, N, 6, 300) # where ket is a Fock state expressed as a vector in the Hilbert space and the spins on local sites.
 #println("Completed plot for N = ", N)
 #OptD(ket, Hd, N, 4, 600) # For comparison with sparse H using the same state.
 #=
