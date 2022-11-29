@@ -5,7 +5,9 @@ of sites in the system, the code returns the entanglement entropy of this state.
 =#
 
 using ITensors
-ITensors.disable_warn_order() 
+ITensors.disable_warn_order()
+using PyCall
+np = pyimport("numpy")
 
 #=
 include("statetolabel.jl")
@@ -68,7 +70,20 @@ function EntangleEntropy(Ψ, b, sites)
         SvN -= p * log(p)
     end
 
-    return SvN
+    return SvN 
+end
+
+function EntEnt(psi)
+    #=
+    Sample code from Achilleas to try and measure the entanglement entropy for a given state vector psi.
+
+    This splits it into 2 equal parts; in principle, this could be changed with some extra arguments.
+    =#
+    block_dim = Int64(np.sqrt(size(psi)[1])) # Had psi.shape[0] but Julia indexes from 1.
+    psi_block = np.reshape(psi, (block_dim, block_dim))
+    s = np.linalg.svd(psi_block, compute_uv=0)
+    sa = s[s .> 1e-15].^2
+    return -np.inner(np.log(sa), sa)
 end
 #=
 N = 16; b = 7; L = 10
