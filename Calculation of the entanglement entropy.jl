@@ -47,7 +47,7 @@ function ProductState(N, Ls, L)
     return ψ / sqrt(L)
 end
 =#
-
+#=
 function EntangleEntropy(Ψ, b, sites)
     #=
     The function takes Ψ and changes it to an MPS, and then calculates and
@@ -56,7 +56,10 @@ function EntangleEntropy(Ψ, b, sites)
     variable i following conventions from the earlier code. Ψ is a vector of 
     length 2^N. 
 
-    This function performs the same purpose as ExpectZ 
+    This function performs the same purpose as ExpectZ to measure a quantity for 
+    a given wave function.
+
+    NOTE: This function has been replaced with EntEnt below but both produce the same results.
     =#
     # sites = siteinds(2,N)
     cutoff = 1E-7; maxdim = 10
@@ -71,7 +74,7 @@ function EntangleEntropy(Ψ, b, sites)
     end
 
     return SvN 
-end
+end=#
 
 function EntEnt(psi, b, N)
     #=

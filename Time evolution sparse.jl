@@ -15,8 +15,8 @@ using Expokit
 using Statistics
 
 
-N = 15; J = 1 ; h = (sqrt(5)+1)/4 ; g = (sqrt(5)+5)/8; 
-E = 0.01; nee = 80; L = 10# nee = 1 
+N = 16; J = 1 ; h = (sqrt(5)+1)/4 ; g = (sqrt(5)+5)/8; 
+E = 0.01; nee = 80; L = 7# nee = 1 
 Ls = rand(1:2^N, L) # A vector of labels of L Fock states in a Product State
 
 #Hd = H2(N, J, h, g) # Short for dense Hamiltonian matrix
@@ -127,15 +127,6 @@ ket = ProductState(N, Ls, L)
 #println(expectZ(ket, 2, N)) # t=0 (initial value)
 #expectZ(ψt, 4, N)
 
-# Comparing entanglement entropy functions
-sites = siteinds(2,N); a = 3
-println(a)
-A = EntangleEntropy(ket[1], a, sites)
-println(A)
-B = EntEnt(ket[1], a, N)
-println(B)
-#println(isapprox(A, B))
-
 function Opt(Ψ, Φ, H, N, i, tmax)
     #=
     This function generates a plot for the evolution of a quantum system of N sites 
@@ -183,8 +174,8 @@ function OptEE(Ψ, Φ, H, N, i, tmax)
     with a given initial state Ψ and Hamiltonian H up to a time tmax for the Z operator
     acting on site i.
     =#
-    dτ = tmax/100; sites = siteinds(2,N)
-    x = 0:dτ:tmax; y = [EntangleEntropy(Ψ, i, sites)] # 140 gives the number the points; an abitrary choice which could be changed
+    dτ = tmax/100# sites = siteinds(2,N)
+    x = 0:dτ:tmax; y = [EntEnt(Ψ, i, N)] 
     
     L = length(x)-1; a = Int64(L/2)
     #println(" \nFor N = ", N)
@@ -192,7 +183,7 @@ function OptEE(Ψ, Φ, H, N, i, tmax)
     for τ in 1:L
         ψτ = expmv(-im*dτ, H, ϕ)
         #ψτ = expmv(-im*τ*dτ, H, Ψ)
-        locval = EntangleEntropy(ψτ, i, sites)
+        locval = EntEnt(ψτ, i, N)
         append!(y, locval)
         ϕ = ψτ # Updates the state after each time evolution step.
         #=
@@ -203,11 +194,11 @@ function OptEE(Ψ, Φ, H, N, i, tmax)
 
     S = ""
     for j in string.(Int64.(Φ))
-        S =  S * j
+        S =  S * j * ", "
     end
 
-    graph = plot(x, y, label = "N = "*string(N),
-                 title = "Entanglement Entropy vs t for \n"*L"|Ψ(t=0)⟩ = |%$S⟩")
+    graph = plot(x, y, label = "N = "*string(N)*" and \nbipartition site "*string(i),
+                 title = "Entanglement Entropy vs t for \n"*L"|Ψ(t=0)⟩ = |%$S⟩\n ")
     #println("Making graph")
     xlabel!(L"t")
     ylabel!(" \n "*"Entanglement Entropy\n ") # %$ symbol allows for string interpolation so i is correctly presented in the yaxis label
@@ -247,7 +238,7 @@ function OptD(Ψ, H, N, i, tmax)
     display(graph)
 end 
 
-#Opt(ket[1], ket[2], Hs, N, 6, 300) # where ket is a Fock state expressed as a vector in the Hilbert space and the spins on local sites.
+OptEE(ket[1], ket[2], Hs, N, 4, 300) # where ket is a Fock state expressed as a vector in the Hilbert space and the spins on local sites.
 #println("Completed plot for N = ", N)
 #OptD(ket, Hd, N, 4, 600) # For comparison with sparse H using the same state.
 #=
@@ -260,3 +251,21 @@ for Nloc in 15:2:21
 
     OptEE(ketl[1], ketl[2], Hsloc, Nloc, round(Int64, Nloc/2), 200)
 end=#
+
+# Comparison between entanglement entropy functions
+#=sites = siteinds(2,N)
+X = 2:18; Y1 = []; Y2 = []
+for al in X
+    println(al)
+    y1 = EntangleEntropy(ket[1], al, sites)
+    y2 = EntEnt(ket[1], al, N)
+    push!(Y1, y1)
+    push!(Y2, y2)
+end
+
+comparison_plot = scatter(X, Y1, markershape=:x, label="Using ITensor")
+scatter!(X, Y2, markershape=:+, markersize=6, label="Using Numpy")
+xlabel!("Size of the subsystem\n ")
+ylabel!(" \nEntanglement entropy measurement\n ")
+title!("Comparison between ITensor and Numpy in\n Entanglement Entropy calculations for N = $N\n ")
+display(comparison_plot)=#
