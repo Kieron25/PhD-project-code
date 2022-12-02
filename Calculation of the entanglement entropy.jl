@@ -4,10 +4,11 @@ From the Many-Body vector describing the state Ψ, of dimension 2^N where N is t
 of sites in the system, the code returns the entanglement entropy of this state.
 =#
 
-using ITensors
-ITensors.disable_warn_order()
+#using ITensors
+#ITensors.disable_warn_order()
 using PyCall
 np = pyimport("numpy")
+using LinearAlgebra
 
 #=
 include("statetolabel.jl")
@@ -80,7 +81,7 @@ function EntEnt(psi, b, N)
     #=
     Sample code from Achilleas to try and measure the entanglement entropy for a given state vector psi.
 
-    This splits it into 2 equal parts; in principle, this could be changed with some extra arguments.
+    The argument b allows splitting the system into 2 unequal parts (equal if N = 2b)
     =#
     #block_dim = Int64(np.sqrt(size(psi)[1])) # Had psi.shape[0] but Julia indexes from 1.
     block_dim1 = 2^b; block_dim2 = 2^(N-b)
@@ -90,6 +91,23 @@ function EntEnt(psi, b, N)
     sa = s[s .> 1e-15].^2
     return -np.inner(np.log(sa), sa)
 end
+
+function EntEnt2(psi, b, N)
+    #=
+    Sample code from Achilleas to try and measure the entanglement entropy for a given state vector psi.
+
+    
+    =#
+    #block_dim = Int64(np.sqrt(size(psi)[1])) # Had psi.shape[0] but Julia indexes from 1.
+    block_dim1 = 2^b; block_dim2 = 2^(N-b)
+    #psi_block = np.reshape(psi, (block_dim, block_dim))
+    psi_block = reshape(psi, (block_dim2, block_dim1))
+    s = svd(psi_block).S
+    sa = s[s .> 1e-15].^2
+    return -sum(sa .* log.(sa))
+end
+
+
 #=
 N = 16; b = 7; L = 10
 Ls = rand(1:2^N, L)

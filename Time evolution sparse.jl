@@ -15,7 +15,7 @@ using Expokit
 using Statistics
 
 
-N = 16; J = 1 ; h = (sqrt(5)+1)/4 ; g = (sqrt(5)+5)/8; 
+N = 21; J = 1 ; h = (sqrt(5)+1)/4 ; g = (sqrt(5)+5)/8; 
 E = 0.01; nee = 80; L = 7# nee = 1 
 Ls = rand(1:2^N, L) # A vector of labels of L Fock states in a Product State
 
@@ -94,6 +94,8 @@ function ProductState(N, Ls, L)
     This function creates a normalised Product State of Fock States using an array A of
     integers which are used as labels in a 2^N vector and the state is normalised by
     1/sqrt(L), where L  is the length of Ls
+
+    N.B. Ls being a random number, so L = 1, returns a random Fock state.
     =#
     
     ψ = zeros(2^N)
@@ -119,7 +121,7 @@ end
 ket = ProductState(N, Ls, L)
 #ket = FockState(4, N)
 
-##println("initial state defined")
+#println("initial state defined")
 #bra = conj(ket')
 # println(bra*ket) # verifies normalisation
 
@@ -174,8 +176,8 @@ function OptEE(Ψ, Φ, H, N, i, tmax)
     with a given initial state Ψ and Hamiltonian H up to a time tmax for the Z operator
     acting on site i.
     =#
-    dτ = tmax/100# sites = siteinds(2,N)
-    x = 0:dτ:tmax; y = [EntEnt(Ψ, i, N)] 
+    dτ = tmax/60# sites = siteinds(2,N)
+    x = 0:dτ:tmax; y = [EntEnt2(Ψ, i, N)] 
     
     L = length(x)-1; a = Int64(L/2)
     #println(" \nFor N = ", N)
@@ -183,7 +185,8 @@ function OptEE(Ψ, Φ, H, N, i, tmax)
     for τ in 1:L
         ψτ = expmv(-im*dτ, H, ϕ)
         #ψτ = expmv(-im*τ*dτ, H, Ψ)
-        locval = EntEnt(ψτ, i, N)
+        locval = EntEnt2(ψτ, i, N)
+        #println("locval type is ", typeof(locval))
         append!(y, locval)
         ϕ = ψτ # Updates the state after each time evolution step.
         #=
@@ -196,9 +199,13 @@ function OptEE(Ψ, Φ, H, N, i, tmax)
     for j in string.(Int64.(Φ))
         S =  S * j * ", "
     end
+    maxval = i * log(2) - (4^i)/(2^(N + 1))
+    y2 = maxval * ones(Int64, length(x))
+    maxvalplt = round(maxval, digits=5)
 
     graph = plot(x, y, label = "N = "*string(N)*" and \nbipartition site "*string(i),
-                 title = "Entanglement Entropy vs t for \n"*L"|Ψ(t=0)⟩ = |%$S⟩\n ")
+                 title = "Entanglement Entropy vs t for \n"*L"|Ψ(t=0)⟩ = |%$S⟩"*"\n ",legendposition=:bottomright)
+    plot!(x, y2, label="Maximal expectation \nvalue for EE = $maxvalplt",ls=:dash, lc="red")
     #println("Making graph")
     xlabel!(L"t")
     ylabel!(" \n "*"Entanglement Entropy\n ") # %$ symbol allows for string interpolation so i is correctly presented in the yaxis label
@@ -207,7 +214,7 @@ function OptEE(Ψ, Φ, H, N, i, tmax)
     σ2 = 1/a * cov(y[a:L], corrected = false)
     μ = mean(y[a:L])
     println(" \nVariance for N = ", N, " is ", σ2)
-    println("And mean equilibrium value is ", μ, " \n ")
+    println("And mean equilibrium value is ", μ, " \nand maximum value is ", maxval)
     # return μ, σ2
 end 
 
@@ -238,7 +245,73 @@ function OptD(Ψ, H, N, i, tmax)
     display(graph)
 end 
 
-OptEE(ket[1], ket[2], Hs, N, 4, 300) # where ket is a Fock state expressed as a vector in the Hilbert space and the spins on local sites.
+function OptEEia(Ψ, Φ, H, N, ia, tmax)
+    #=
+    This function generates a plot for the evolution of a quantum system of N sites 
+    with a given initial state Ψ and Hamiltonian H up to a time tmax for the Entanglement
+    Entropy of a subsystem from site 1 to site i out of an array ia with different sites 
+    being evaluated as the partition between the 2 subsystems.
+    =#
+    dτ = tmax/60# sites = siteinds(2,N)
+    x = 0:dτ:tmax 
+    #y1 = [EntEnt2(Ψ, ia[1], N)]; y2 = [EntEnt2(Ψ, ia[2], N)] y3 = [EntEnt2(Ψ, ia[4], N)]
+    #y4 = [EntEnt2(Ψ, ia[4], N)]; y5 = [EntEnt2(Ψ, ia[5], N)]; Y = [y1, y2, y3, y4, y5]; 
+    Y = zeros(Float64, (1, length(ia)))
+    #display(Y)
+    for j in 1:lastindex(ia)
+        yl = EntEnt2(Ψ, ia[j], N)
+        Y[j] += yl
+    end
+    #display(Y)
+    #println(typeof(Y))
+
+    L = length(x)-1; a = Int64(L/2)
+    #println(" \nFor N = ", N)
+    ϕ = Ψ
+    for τ in 1:L
+        ψτ = expmv(-im*dτ, H, ϕ)
+        #ψτ = expmv(-im*τ*dτ, H, Ψ)
+        for j in 1:lastindex(ia)
+            locval = EntEnt2(ψτ, ia[j], N)
+            append!(Y[j], locval)
+        end
+        ϕ = ψτ # Updates the state after each time evolution step.
+        #=
+        if mod(τ, 10) == 0
+            println(τ)
+        end=#
+    end
+
+    S = ""
+    for j in string.(Int64.(Φ))
+        S =  S * j * ", "
+    end
+
+    for j in 1:lastindex(ia)
+        maxval = ia[j] * log(2) - (4^ia[j])/(2^(N + 1))
+        ymaxj = maxval * ones(Int64, length(x))
+        maxvalplt = round(maxval, digits=5)
+
+        graph = plot(x, Y[j], label = "N = "*string(N)*" and \nbipartition site "*string(ia[j]),
+                 title = "Entanglement Entropy vs t for \n"*L"|Ψ(t=0)⟩ = |%$S⟩"*"\n ",legendposition=:bottomright)
+        plot!(x, ymaxj, label="Maximal expectation \nvalue for EE = $maxvalplt",ls=:dash, lc="red")
+        #println("Making graph")
+        xlabel!(L"t")
+        ylabel!(" \n "*"Entanglement Entropy\n ") # %$ symbol allows for string interpolation so i is correctly presented in the yaxis label
+        display(graph)
+        
+        σ2 = 1/a * cov(Y[j][a:L], corrected = false)
+        μ = mean(Y[j][a:L])
+        println(" \nVariance for N = ", N, " is ", σ2)
+        println("And mean equilibrium value is ", μ, " \nand maximum value is ", maxval)
+    end
+
+    # return μ, σ2
+end
+
+amax = round(Int64, N/2 -1)
+A = 4:2:amax
+OptEEia(ket[1], ket[2], Hs, N, A, 200) # where ket is a Fock state expressed as a vector in the Hilbert space and the spins on local sites.
 #println("Completed plot for N = ", N)
 #OptD(ket, Hd, N, 4, 600) # For comparison with sparse H using the same state.
 #=
@@ -253,19 +326,22 @@ for Nloc in 15:2:21
 end=#
 
 # Comparison between entanglement entropy functions
-#=sites = siteinds(2,N)
-X = 2:18; Y1 = []; Y2 = []
+#sites = siteinds(2,N)
+#=
+X = 3:10; Y1 = []; Y2 = []
 for al in X
     println(al)
-    y1 = EntangleEntropy(ket[1], al, sites)
-    y2 = EntEnt(ket[1], al, N)
+    #y1 = EntangleEntropy(ket[1], al, sites)
+    y1 = EntEnt2(ket[1], al, N)
+    y2 = al * log(2) - (4^al)/(2^(N + 1))
     push!(Y1, y1)
     push!(Y2, y2)
 end
+println(Ls)
 
-comparison_plot = scatter(X, Y1, markershape=:x, label="Using ITensor")
-scatter!(X, Y2, markershape=:+, markersize=6, label="Using Numpy")
+comparison_plot = scatter(X, Y1, markershape=:x, label="EntEnt2 function") # Using ITensor
+scatter!(X, Y2, markershape=:+, markersize=6, label="Predicted maximal value") #Using Numpy
 xlabel!("Size of the subsystem\n ")
 ylabel!(" \nEntanglement entropy measurement\n ")
-title!("Comparison between ITensor and Numpy in\n Entanglement Entropy calculations for N = $N\n ")
+title!("Comparison between EntEnt2 and predictions in\n Entanglement Entropy calculations for N = $N\n ")
 display(comparison_plot)=#
