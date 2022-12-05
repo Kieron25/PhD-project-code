@@ -20,7 +20,7 @@ E = 0.01; nee = 80; L = 7# nee = 1
 Ls = rand(1:2^N, L) # A vector of labels of L Fock states in a Product State
 
 #Hd = H2(N, J, h, g) # Short for dense Hamiltonian matrix
-Hs = H2sparse(N, J, h, g)
+##Hs = H2sparse(N, J, h, g)
 #println("Got Hs")
 
 # Writing initial states to time evolve
@@ -36,11 +36,8 @@ function FockState(l, N)
 
     ψ = zeros(2^N) 
     ψ[ind] = 1
-    #ψ[5] = 1
-    #ψ[2^(N-2)] = 1
-    #ψ[90] = 1
 
-    return ψ, ϕ # The state representation in a 2^N vector and 
+    return ψ, ϕ # The state representation in a 2^N vector and the spin configuration as a vector of length N.
 end
 
 function lowesteigenstate(H, E)
@@ -118,8 +115,8 @@ end
 
 #ket = sumofeigenstates(Xs[1], N, nee)
 #ket = sumofeigenstates(X[2], X[3], 0, 0.2, N) # Use for dense Hamiltonians
-ket = ProductState(N, Ls, L)
-#ket = FockState(4, N)
+#ket = ProductState(N, Ls, L)
+##ketf = FockState(4, N)
 
 #println("initial state defined")
 #bra = conj(ket')
@@ -254,26 +251,25 @@ function OptEEia(Ψ, Φ, H, N, ia, tmax)
     =#
     dτ = tmax/60# sites = siteinds(2,N)
     x = 0:dτ:tmax 
+    L = length(x); a = Int64((L-1)/2)
     #y1 = [EntEnt2(Ψ, ia[1], N)]; y2 = [EntEnt2(Ψ, ia[2], N)] y3 = [EntEnt2(Ψ, ia[4], N)]
     #y4 = [EntEnt2(Ψ, ia[4], N)]; y5 = [EntEnt2(Ψ, ia[5], N)]; Y = [y1, y2, y3, y4, y5]; 
-    Y = zeros(Float64, (1, length(ia)))
-    #display(Y)
+    Y = zeros(Float64, (length(ia), L))
+
+    # Initial values for t = 0
     for j in 1:lastindex(ia)
         yl = EntEnt2(Ψ, ia[j], N)
-        Y[j] += yl
+        Y[j, 1] = yl
     end
-    #display(Y)
-    #println(typeof(Y))
 
-    L = length(x)-1; a = Int64(L/2)
     #println(" \nFor N = ", N)
     ϕ = Ψ
-    for τ in 1:L
+    for τ in 2:L
         ψτ = expmv(-im*dτ, H, ϕ)
         #ψτ = expmv(-im*τ*dτ, H, Ψ)
         for j in 1:lastindex(ia)
             locval = EntEnt2(ψτ, ia[j], N)
-            append!(Y[j], locval)
+            Y[j, τ] = locval
         end
         ϕ = ψτ # Updates the state after each time evolution step.
         #=
@@ -292,7 +288,7 @@ function OptEEia(Ψ, Φ, H, N, ia, tmax)
         ymaxj = maxval * ones(Int64, length(x))
         maxvalplt = round(maxval, digits=5)
 
-        graph = plot(x, Y[j], label = "N = "*string(N)*" and \nbipartition site "*string(ia[j]),
+        graph = plot(x, Y[j,:], label = "N = "*string(N)*" and \nbipartition site "*string(ia[j]),
                  title = "Entanglement Entropy vs t for \n"*L"|Ψ(t=0)⟩ = |%$S⟩"*"\n ",legendposition=:bottomright)
         plot!(x, ymaxj, label="Maximal expectation \nvalue for EE = $maxvalplt",ls=:dash, lc="red")
         #println("Making graph")
@@ -300,8 +296,8 @@ function OptEEia(Ψ, Φ, H, N, ia, tmax)
         ylabel!(" \n "*"Entanglement Entropy\n ") # %$ symbol allows for string interpolation so i is correctly presented in the yaxis label
         display(graph)
         
-        σ2 = 1/a * cov(Y[j][a:L], corrected = false)
-        μ = mean(Y[j][a:L])
+        σ2 = 1/a * cov(Y[j, :][a:L], corrected = false)
+        μ = mean(Y[j, :][a:L])
         println(" \nVariance for N = ", N, " is ", σ2)
         println("And mean equilibrium value is ", μ, " \nand maximum value is ", maxval)
     end
@@ -309,21 +305,22 @@ function OptEEia(Ψ, Φ, H, N, ia, tmax)
     # return μ, σ2
 end
 
-amax = round(Int64, N/2 -1)
-A = 4:2:amax
-OptEEia(ket[1], ket[2], Hs, N, A, 200) # where ket is a Fock state expressed as a vector in the Hilbert space and the spins on local sites.
-#println("Completed plot for N = ", N)
+##amax = round(Int64, N/2 - 1)
+##A = 4:2:amax
+##OptEEia(ketf[1], ketf[2], Hs, N, A, 200) # where ket is a Fock state expressed as a vector in the Hilbert space and the spins on local sites.
+#OptEE(ket[1], ket[2], Hs, N, A, 200)
 #OptD(ket, Hd, N, 4, 600) # For comparison with sparse H using the same state.
-#=
-for Nloc in 15:2:21
-    Hsloc = H2sparse(Nloc, J, h, g)
-    #Lsloc = rand(1:2^Nloc, L)
-    #ketl = ProductState(Nloc, Lsloc, L) # ketl just sounded better than ketloc
-    ketl = FockState(4, Nloc)
+
+for Nloc in 6:2:20
+    #Hsloc = H2sparse(Nloc, J, h, g)
+    #ketl = FockState(Nloc, Lsloc, L) # ketl just sounded better than ketloc
+    ketl = FockState(2, Nloc)
     #println("Got Hs and initial state for ", Nloc)
 
-    OptEE(ketl[1], ketl[2], Hsloc, Nloc, round(Int64, Nloc/2), 200)
-end=#
+    #OptEE(ketl[1], ketl[2], Hsloc, Nloc, round(Int64, Nloc/2), 200)
+    val = EntEnt2(ketl[1], 5, Nloc)
+    println("Initial Entanglement entropy for ketl is ", val)
+end
 
 # Comparison between entanglement entropy functions
 #sites = siteinds(2,N)
