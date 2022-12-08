@@ -94,7 +94,9 @@ end
 
 function EntEnt2(psi, b, N)
     #=
-    Sample code from Achilleas to try and measure the entanglement entropy for a given state vector psi.
+    Sample code from Achilleas to try and measure the entanglement entropy for a given state vector psi, 
+    with partition site b of N spin sites. This was translated into pure Julia code without the need to 
+    import a python module.
 
     
     =#
@@ -102,6 +104,7 @@ function EntEnt2(psi, b, N)
     block_dim1 = 2^b; block_dim2 = 2^(N-b)
     #psi_block = np.reshape(psi, (block_dim, block_dim))
     psi_block = reshape(psi, (block_dim2, block_dim1))
+    #println(psi_block)
     s = svd(psi_block).S
     sa = s[s .> 1e-15].^2
     return -sum(sa .* log.(sa))
