@@ -10,7 +10,7 @@ using SparseArrays
 using Random
 
 # System size is fixed
-N = 15; b = 7#; p = 0.05
+N = 12; b = 6#; p = 0.05
 #D = 2^N
 
 function RandArr(N, p)
@@ -68,9 +68,11 @@ end
 function pvsEEpoint(p, D, N, b)
     EE = []; len = 100
     #L = Int64(round(p * D))
+    #rng = MersenneTwister(1234)
 
     for j in 1:len
         Ls = RandArr(N, p)
+        #Ls = randsubseq(rng, 1:D, p)
         Ψl = ProductState(D, Ls)
         #Ψl = RandomState(p, D)
         EEl = EntEnt2(Ψl, b, N)
@@ -78,10 +80,10 @@ function pvsEEpoint(p, D, N, b)
     end
 
     val = sum(EE)/(len)
-    var = cov(EE, corrected = false)
+    #var = cov(EE, corrected = false)
     #expected = b * log(2) - 4^b/(2^(N+1))
     #δ = expected - val
-    return val, var
+    return val#, var
 end
 #=
 for P in 0.1:0.2:0.9
@@ -101,28 +103,25 @@ function pvsEEplot(N, b)
 
     for p in P
         val = pvsEEpoint(p, D, N, b)
-        esl = val[1]
+        esl = val#[1]
         #esebl = sqrt(val[2])
         append!(ES, esl)
         #append!(ESeb, esebl)
     end
 
-    graph = plot(P, ES, title=" \nEntanglement Entropy vs density of occupied states \n ",
+    graph = plot(log.(P), log.(ES), title="log(Entanglement Entropy) vs\n log(density of occupied states) \n ",
                  label="N = $N and \nbipartition site $b", legendposition=:bottomright) # yerror = ESeb,
-    xlabel!("Density of state vector/ 'p'\n ")
-    ylabel!(" \nEntanglement Entropy\n ")
+    xlabel!("log(Density of state vector) / log('p')\n ")
+    ylabel!(" \nlog(Entanglement Entropy)\n ")
 
-    maxS = round(b * log(2) - 4^b/(2^(N+1)), digits = 4)
+    maxS = round(log(b * log(2) - 4^b/(2^(N+1))), digits = 5)
     Y = maxS * ones(length(P))
-    plot!(P, Y, label=" \nMaximal expectation \nvalue of EE = $maxS", ls=:dash, lc="red")
+    plot!(log.(P), Y, label=" Maximal expectation \nvalue of log(EE) = $maxS", ls=:dash, lc="red")
     display(graph)
 end
 
-pvsEEplot(16, 8)
-pvsEEplot(17, 8)
-pvsEEplot(18, 9)
-pvsEEplot(19, 9)
-pvsEEplot(20, 10)
-pvsEEplot(21, 10)
-pvsEEplot(22, 11)
-pvsEEplot(23, 11)
+pvsEEplot(N, b)
+
+#println(length(RandArr(N, 0.8)))
+#rng = MersenneTwister(1234); D = 2^N
+#length(randsubseq(rng, 1:D, 0.8))
