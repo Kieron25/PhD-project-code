@@ -13,7 +13,7 @@ using Random
 using StatsBase
 
 # System size is fixed
-N = 15; b = 7; E = 0.1; p = 0.05
+N = 16; b = 8; E = 0.1; p = 0.05
 #D = 2^N
 
 function RandArr(N, p)
