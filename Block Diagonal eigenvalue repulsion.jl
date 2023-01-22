@@ -70,14 +70,15 @@ end
 #D = 200; n = 6;
 #D = 240; n = 5
 #D = 300; n = 4
-D = 150; n = 9
+D = 10; n = 150
 DT = n*D
 ρ = 0.8; neigv = DT - 1
-A = Hrand(D, ρ); B = Hrand(D, ρ); C = Hrand(D, ρ);
-D1 = Hrand(D, ρ); E = Hrand(D, ρ); F = Hrand(D, ρ);
-G = Hrand(D, ρ); H = Hrand(D, ρ); J = Hrand(D, ρ);
+#A = Hrand(D, ρ); B = Hrand(D, ρ); C = Hrand(D, ρ);
+#D1 = Hrand(D, ρ); E = Hrand(D, ρ); F = Hrand(D, ρ);
+#G = Hrand(D, ρ); H = Hrand(D, ρ); J = Hrand(D, ρ);
+#K = Hrand(D, ρ); L = Hrand(D, ρ); M1 = Hrand(D, ρ);
 # Construct Block Diagonal Array
-M = BlockDiagonal([A, B, C, D1, E, F, G, H, J])
+M = BlockDiagonal([Hrand(D, ρ) for j in 1:n])#, G, H, J, K, L, M1])
 
 evλ = eigs(M, nev = neigv, which=:SR)[1]
 
@@ -92,6 +93,6 @@ end
 l = 84
 #display(Δ)
 bins = range(1e-4, 1, length=l)
-graph = histogram(R, bins=bins, normalize=:pdf, label="Data from $DT x $DT \nrandom $n Block Diagonal matrix")
+graph = histogram(R, bins=bins, normalize=:probability, label="Data from $DT x $DT matrix \nwith $n random Block Diagonal ")
 xlabel!("r / min(δ_n, δ_n-1) ÷ max(δ_n, δ_n-1)")
 display(graph)
