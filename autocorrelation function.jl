@@ -4,7 +4,6 @@ include("statetolabel.jl")
 include("EastREM Hamiltonian.jl")
 include("GOE EastREM Block IPR.jl")
 include("Z operator on Fock space.jl")
-include("propagators.jl")
 
 using Statistics
 using CurveFit
