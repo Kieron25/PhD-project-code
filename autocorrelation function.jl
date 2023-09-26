@@ -169,17 +169,9 @@ function multiNplot(Lmin, Lmax, lr, tstep, tmax, Γ)
         println("Argument lr not supported; use capital L or R.")
     end
 end
-#=
-Ute = exp(-im * Matrix(GOEEastREMM(12, 0.1)[1]) * 10)
-println(typeof(Ute))
-time_evolve2(12, 4, Ute, statevec(domainwalllabel(12)-1, TotalD(12)), 10, 100)
-=#
+
 #Ute = propagator(Matrix(GOEEastREMM(10, 0.1)[1]), 10); V = statevec(domainwalllabel(10)-1, TotalD(10))
 #println(typeof(Ute), " ", typeof(V))
-#@time time_evolve3(10, 2, Ute, V, 2)
-
-#@time autocorrelation_function(10, 10, 40, 1, 5, 0.1)
-#autocorrelation_function(10, 10, 100, 6, 10, 0.1)
 
 #@time auto_corr(12, 0.1, 1, 6, 10, 50)
 #@time func1!(Vector{Float64}(undef, 5), 10, 1, 5, Ute, V, 10)
