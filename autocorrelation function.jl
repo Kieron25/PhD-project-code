@@ -187,6 +187,7 @@ time_evolve2(12, 4, Ute, statevec(domainwalllabel(12)-1, TotalD(12)), 10, 100)
 #multiNplot(6, 12, "L", 10, 60, 0.1)
 #multiNplot(6, 12, "L", 10, 60, 1.0)
 
+#=
 T = 0:10:60
 auto_corr(6, 0.1, 1, 3, 10, 60)
 Y = load("auto_corr6 and 0.1 (L).jld")["Auto_corr_6 and 0.1 (L)"]
@@ -197,4 +198,4 @@ for N in 8:2:12
     Yl = load("auto_corr$N and 0.1 (L).jld")["Auto_corr_$N and 0.1 (L)"]
     plot!(graph, T, Yl, label="N = $N", markershape=:circle)
 end
-display(graph)
+display(graph)=#
