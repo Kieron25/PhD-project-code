@@ -19,11 +19,6 @@ Vspin = labeltostate(L, N)
 Vmat = statevec(L-1, D)
 #println(Vmat, length(Vmat))
 
-println(size(M), length(Vmat))
-U = Ut(M, 0.1, Vmat)
-display(U)=#
-
-
 function time_evolve(ZD, ϕ, Ψf)
     # This function returns the product of time evolved vectors and a matrix ZD, for a single spin site
     # The past version of this function uses commented out U and Udag to evolve the states 
